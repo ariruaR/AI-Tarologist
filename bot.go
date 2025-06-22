@@ -7,6 +7,7 @@ import (
 
 	"bot/components/chatgpt"
 	"bot/components/keyboards"
+	"bot/components/payment"
 	configReader "bot/config"
 
 	"github.com/mymmrac/telego"
@@ -22,6 +23,10 @@ const StartText string = `Привет, я ИИ-Таролог, составлю
 
 const BuyText string = `
 Правильный выбор! 
+Вот тебе стоимости: 
+Прогноз по звездам: 70.0 $ или 7000 ⭐
+Нотальная карта: 250.0 $ или 25000 ⭐
+Еще какая то очень дорогая хрень: 2500.0$ или 250000 ⭐
 `
 
 func main() {
@@ -35,7 +40,6 @@ func main() {
 		os.Exit(1)
 	}
 	updates, _ := bot.UpdatesViaLongPolling(context.Background(), nil)
-
 	for update := range updates {
 		chatId := update.Message.Chat.ID
 		if update.Message.Text == "/start" {
@@ -54,21 +58,88 @@ func main() {
 			bot.SendMessage(ctx, msg)
 		}
 		if update.Message.Text == "Прогноз по звездам" {
-			bot.SendMessage(ctx,
-				ti.Message(
-					ti.ID(chatId),
-					"Проверяю Звезды...",
-				),
+			payment.SendInvoice(
+				bot,
+				ctx,
+				chatId,
+				"Прогноз по звездам",
+				"Оплата стоимости прогноза по звездам",
+				7000,
 			)
-			responseMsg := fmt.Sprintf("Составь прогноз на неделю по звездам для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
-			response := chatgpt.RequestOpenAi(responseMsg)
-			bot.SendMessage(ctx,
-				ti.Message(
-					ti.ID(chatId),
-					response,
-				),
-			)
-		}
+			if update.Message.SuccessfulPayment != nil {
+				responseMsg := fmt.Sprintf("Составь прогноз на неделю по звездам для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
+				response := chatgpt.RequestOpenAi(responseMsg)
+				bot.SendMessage(ctx,
+					ti.Message(
+						ti.ID(chatId),
+						response,
+					),
+				)
+			}
 
+		}
+		if update.Message.Text == "Нотальная карта" {
+			payment.SendInvoice(
+				bot,
+				ctx,
+				chatId,
+				"Нотальная карта",
+				"Оплата стоимости Нотальная карта",
+				25000,
+			)
+			if update.Message.SuccessfulPayment != nil {
+				responseMsg := fmt.Sprintf("Составь нотальная карта для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
+				response := chatgpt.RequestOpenAi(responseMsg)
+				bot.SendMessage(ctx,
+					ti.Message(
+						ti.ID(chatId),
+						response,
+					),
+				)
+			}
+
+		}
+		if update.Message.Text == "еще какая то очень дорогая хрень" {
+			payment.SendInvoice(
+				bot,
+				ctx,
+				chatId,
+				"еще какая то очень дорогая хрень",
+				"Оплата стоимости еще какая то очень дорогая хрень",
+				250000,
+			)
+			if update.Message.SuccessfulPayment != nil {
+				responseMsg := fmt.Sprintf("Составь прогноз на неделю по звездам для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
+				response := chatgpt.RequestOpenAi(responseMsg)
+				bot.SendMessage(ctx,
+					ti.Message(
+						ti.ID(chatId),
+						response,
+					),
+				)
+			}
+
+		}
+		if update.Message.Text == "оплатить все это" {
+			payment.SendInvoice(
+				bot,
+				ctx,
+				chatId,
+				"еще какая то очень дорогая хрень",
+				"Оплата стоимости еще какая то очень дорогая хрень",
+				270000,
+			)
+			if update.Message.SuccessfulPayment != nil {
+				// responseMsg := fmt.Sprintf("Составь прогноз на неделю по звездам для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
+				// response := chatgpt.RequestOpenAi(responseMsg)
+				// bot.SendMessage(ctx,
+				// 	ti.Message(
+				// 		ti.ID(chatId),
+				// 		response,
+				// 	),
+				// )
+				bot.SendMessage(ctx, ti.Message(ti.ID(chatId), "Запрос создан, ожидайте ответа от менеджера"))
+			}
+		}
 	}
 }
