@@ -1,17 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
+	"time"
 
-	"bot/components/chatgpt"
 	"bot/components/keyboards"
-	"bot/components/payment"
 	configReader "bot/config"
 
-	"github.com/mymmrac/telego"
-	ti "github.com/mymmrac/telego/telegoutil"
+	tele "gopkg.in/telebot.v4"
 )
 
 // Local Imports
@@ -22,124 +19,41 @@ const StartText string = `Привет, я ИИ-Таролог, составлю
 `
 
 const BuyText string = `
-Правильный выбор! 
-Вот тебе стоимости: 
+Правильный выбор!
+Вот тебе стоимости:
 Прогноз по звездам: 70.0 $ или 7000 ⭐
-Нотальная карта: 250.0 $ или 25000 ⭐
-Еще какая то очень дорогая хрень: 2500.0$ или 250000 ⭐
+Нотальная карта: 85.0 $ или 8500 ⭐
+Еще какая то очень дорогая хрень: 100.0$ или 10000 ⭐
 `
 
 func main() {
 	bot_token := configReader.Readconfig().BOTTOKEN
+	pref := tele.Settings{
+		Token:  bot_token,
+		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
+	}
 
-	ctx := context.Background()
-
-	bot, err := telego.NewBot(bot_token, telego.WithDefaultDebugLogger())
+	bot, err := tele.NewBot(pref)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	updates, _ := bot.UpdatesViaLongPolling(context.Background(), nil)
-	for update := range updates {
-		chatId := update.Message.Chat.ID
-		if update.Message.Text == "/start" {
-			bot.SendMessage(ctx,
-				ti.Message(
-					ti.ID(chatId),
-					StartText,
-				),
-			)
-		}
-		if update.Message.Text == "/buy" {
-			buykeyboard := keyboards.Createkeyboard()
-			msg := ti.Message(
-				ti.ID(chatId), BuyText,
-			).WithReplyMarkup(&buykeyboard).WithProtectContent()
-			bot.SendMessage(ctx, msg)
-		}
-		if update.Message.Text == "Прогноз по звездам" {
-			payment.SendInvoice(
-				bot,
-				ctx,
-				chatId,
-				"Прогноз по звездам",
-				"Оплата стоимости прогноза по звездам",
-				7000,
-			)
-			if update.Message.SuccessfulPayment != nil {
-				responseMsg := fmt.Sprintf("Составь прогноз на неделю по звездам для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
-				response := chatgpt.RequestOpenAi(responseMsg)
-				bot.SendMessage(ctx,
-					ti.Message(
-						ti.ID(chatId),
-						response,
-					),
-				)
-			}
-
-		}
-		if update.Message.Text == "Нотальная карта" {
-			payment.SendInvoice(
-				bot,
-				ctx,
-				chatId,
-				"Нотальная карта",
-				"Оплата стоимости Нотальная карта",
-				25000,
-			)
-			if update.Message.SuccessfulPayment != nil {
-				responseMsg := fmt.Sprintf("Составь нотальная карта для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
-				response := chatgpt.RequestOpenAi(responseMsg)
-				bot.SendMessage(ctx,
-					ti.Message(
-						ti.ID(chatId),
-						response,
-					),
-				)
-			}
-
-		}
-		if update.Message.Text == "еще какая то очень дорогая хрень" {
-			payment.SendInvoice(
-				bot,
-				ctx,
-				chatId,
-				"еще какая то очень дорогая хрень",
-				"Оплата стоимости еще какая то очень дорогая хрень",
-				250000,
-			)
-			if update.Message.SuccessfulPayment != nil {
-				responseMsg := fmt.Sprintf("Составь прогноз на неделю по звездам для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
-				response := chatgpt.RequestOpenAi(responseMsg)
-				bot.SendMessage(ctx,
-					ti.Message(
-						ti.ID(chatId),
-						response,
-					),
-				)
-			}
-
-		}
-		if update.Message.Text == "оплатить все это" {
-			payment.SendInvoice(
-				bot,
-				ctx,
-				chatId,
-				"еще какая то очень дорогая хрень",
-				"Оплата стоимости еще какая то очень дорогая хрень",
-				270000,
-			)
-			if update.Message.SuccessfulPayment != nil {
-				// responseMsg := fmt.Sprintf("Составь прогноз на неделю по звездам для %s, учитывая все особенности тарологических прогнозов", update.Message.From.FirstName)
-				// response := chatgpt.RequestOpenAi(responseMsg)
-				// bot.SendMessage(ctx,
-				// 	ti.Message(
-				// 		ti.ID(chatId),
-				// 		response,
-				// 	),
-				// )
-				bot.SendMessage(ctx, ti.Message(ti.ID(chatId), "Запрос создан, ожидайте ответа от менеджера"))
-			}
-		}
-	}
+	bot.Handle(tele.OnCheckout, func(ctx tele.Context) error {
+		return ctx.Accept()
+	})
+	bot.Handle("/refund", func(ctx tele.Context) error {
+		return ctx.Send("Эта Функция находится в разработке")
+	})
+	bot.Handle(tele.OnPayment, func(ctx tele.Context) error {
+		user := ctx.Sender()
+		text := fmt.Sprintf("%s, Оплата прошла успешно", user.Username)
+		return ctx.Send(text)
+	})
+	bot.Handle("/start", func(ctx tele.Context) error {
+		return ctx.Send(StartText)
+	})
+	bot.Handle("/buy", func(ctx tele.Context) error {
+		return ctx.Send(BuyText, keyboards.CreateBuyKeyboard())
+	})
+	bot.Start()
 }

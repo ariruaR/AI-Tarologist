@@ -4,6 +4,8 @@ go 1.24.4
 
 require github.com/mymmrac/telego v1.1.1
 
+require github.com/joho/godotenv v1.5.1 // indirect
+
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
@@ -23,5 +25,7 @@ require (
 	github.com/valyala/fasthttp v1.62.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
+	gopkg.in/telebot.v3 v3.3.8 // indirect
+	gopkg.in/telebot.v4 v4.0.0-beta.5
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

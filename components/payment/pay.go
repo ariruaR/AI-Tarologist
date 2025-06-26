@@ -1,37 +1,27 @@
 package payment
 
 import (
-	"context"
-	"log"
-
-	"github.com/mymmrac/telego"
-	tu "github.com/mymmrac/telego/telegoutil"
+	tele "gopkg.in/telebot.v4"
 )
 
 func SendInvoice(
-	bot *telego.Bot,
-	ctx context.Context,
-	chatID int64,
+	ctx tele.Context,
 	title string,
 	description string,
 	amount uint64,
-) {
-	invoice := telego.SendInvoiceParams{
-		ChatID:        tu.ID(chatID),
-		Title:         title,
-		Description:   description,
-		Payload:       "unique_payment",
-		ProviderToken: "",
-		Currency:      "XTR",
-		Prices: []telego.LabeledPrice{
+) error {
+	invoice := tele.Invoice{
+		Title:       title,
+		Description: description,
+		Payload:     "unique_payment",
+		Token:       "",
+		Currency:    "XTR",
+		Prices: []tele.Price{
 			{
 				Label:  "Оплата запроса",
 				Amount: int(amount),
 			},
 		},
 	}
-	_, err := bot.SendInvoice(ctx, &invoice)
-	if err != nil {
-		log.Printf("Ошибка отправки чека оплаты, err: %s", err)
-	}
+	return ctx.Send(invoice)
 }
