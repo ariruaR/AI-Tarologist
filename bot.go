@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"bot/components/keyboards"
+	"bot/components/payment"
 	configReader "bot/config"
 
 	tele "gopkg.in/telebot.v4"
@@ -38,6 +39,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	menu := keyboards.CreateBuyKeyboard()
 	bot.Handle(tele.OnCheckout, func(ctx tele.Context) error {
 		return ctx.Accept()
 	})
@@ -53,7 +55,44 @@ func main() {
 		return ctx.Send(StartText)
 	})
 	bot.Handle("/buy", func(ctx tele.Context) error {
-		return ctx.Send(BuyText, keyboards.CreateBuyKeyboard())
+		return ctx.Send(BuyText, menu)
 	})
+
+	bot.Handle(&keyboards.BtnStarCard, func(ctx tele.Context) error {
+		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 7000)
+		return ctx.Send(invoice)
+	})
+	bot.Handle(&keyboards.BtnAnotherBuy, func(ctx tele.Context) error {
+		invoice := payment.CreatePayInvoice(ctx, "Еще какая то штука", "оплата услуги", 10000)
+		return ctx.Send(invoice)
+	})
+	bot.Handle(&keyboards.BtnNotalCard, func(ctx tele.Context) error {
+		invoice := payment.CreatePayInvoice(ctx, "Нотальная карта", "Оплата услуги", 8500)
+		return ctx.Send(invoice)
+	})
+	bot.Handle("/test", func(ctx tele.Context) error {
+		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 7000)
+		return ctx.Send(invoice)
+	})
+
+	// bot.Handle(tele.OnText, func(ctx tele.Context) error {
+	// 	switch text := ctx.Text(); text {
+	// 	case "Нотальная карта":
+	// 		err := payment.SendPayInvoice(ctx, "Нотальная карта", "Оплата услуги", 8500)
+	// 		if err != nil {
+	// 			log.Fatal(err)
+	// 			return nil
+	// 		}
+	// 	case "Еще какая то рандомная хрень":
+	// 		err := payment.SendPayInvoice(ctx, "Еще какая то рандомная хрень", "Оплата услуги", 10000)
+	// 		if err != nil {
+	// 			log.Fatal(err)
+	// 			return nil
+	// 		}
+	// 	default:
+	// 		return ctx.Send("Введите одну из предложенных комманд или нажмите на кнопку")
+	// 	}
+	// 	return ctx.Send("У вас есть 10 минут до конца действительности чека")
+	// })
 	bot.Start()
 }

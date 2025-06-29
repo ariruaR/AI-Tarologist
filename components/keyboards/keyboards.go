@@ -4,15 +4,16 @@ import (
 	tele "gopkg.in/telebot.v4"
 )
 
+var menu = &tele.ReplyMarkup{ResizeKeyboard: true}
+var BtnStarCard = menu.Text("Прогноз по звездам")
+var BtnNotalCard = menu.Text("Нотальная карта")
+var BtnAnotherBuy = menu.Text("Еще какая то рандомная хрень")
+
 func CreateBuyKeyboard() *tele.ReplyMarkup {
-	menu := &tele.ReplyMarkup{ResizeKeyboard: true}
-	btnStarCard := menu.Text("Прогноз по звездам")
-	btnNotalCard := menu.Text("Нотальная карта")
-	btnAnotherBuy := menu.Text("Еще какая то рандомная хрень")
 	menu.Reply(
-		menu.Row(btnStarCard),
-		menu.Row(btnNotalCard),
-		menu.Row(btnAnotherBuy),
+		menu.Row(BtnStarCard),
+		menu.Row(BtnNotalCard),
+		menu.Row(BtnAnotherBuy),
 	)
 	return menu
 }

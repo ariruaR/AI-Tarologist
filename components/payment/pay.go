@@ -4,13 +4,13 @@ import (
 	tele "gopkg.in/telebot.v4"
 )
 
-func SendInvoice(
+func CreatePayInvoice(
 	ctx tele.Context,
 	title string,
 	description string,
-	amount uint64,
-) error {
-	invoice := tele.Invoice{
+	amount int64,
+) *tele.Invoice {
+	invoice := &tele.Invoice{
 		Title:       title,
 		Description: description,
 		Payload:     "unique_payment",
@@ -23,5 +23,5 @@ func SendInvoice(
 			},
 		},
 	}
-	return ctx.Send(invoice)
+	return invoice
 }
