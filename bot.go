@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
+	"bot/components/chatgpt"
 	"bot/components/keyboards"
+	message "bot/components/message"
 	"bot/components/payment"
+	r "bot/components/redis"
 	configReader "bot/config"
 
 	tele "gopkg.in/telebot.v4"
@@ -14,24 +18,18 @@ import (
 
 // Local Imports
 
-const StartText string = `Привет, я ИИ-Таролог, составлю натальную карту и погадаю на таро, а так же расскажу Вам Вашу судьбу по знаку зодиака\n
-Всего за 70$ ты узнаешь будущее себя и своей семьи
-Для приобретения услуги - пиши /buy
-`
-
-const BuyText string = `
-Правильный выбор!
-Вот тебе стоимости:
-Прогноз по звездам: 70.0 $ или 7000 ⭐
-Нотальная карта: 85.0 $ или 8500 ⭐
-Еще какая то очень дорогая хрень: 100.0$ или 10000 ⭐
-`
-
 func main() {
 	bot_token := configReader.Readconfig().BOTTOKEN
 	pref := tele.Settings{
 		Token:  bot_token,
 		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
+	}
+	//?* СОЗДАНИЕ РЕДИС КЛИЕНТА
+	RedisClient := r.NewClient()
+
+	if err := RedisClient.Setter(context.Background(), "State", "default", 10*time.Minute); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	bot, err := tele.NewBot(pref)
@@ -47,15 +45,31 @@ func main() {
 		return ctx.Send("Эта Функция находится в разработке")
 	})
 	bot.Handle(tele.OnPayment, func(ctx tele.Context) error {
-		user := ctx.Sender()
-		text := fmt.Sprintf("%s, Оплата прошла успешно", user.Username)
-		return ctx.Send(text)
+		currentState, err := RedisClient.Getter(context.Background(), "State")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		switch currentState {
+		case "startPay":
+			text := fmt.Sprintf(message.StarRequest, ctx.Sender().Username)
+			resp := chatgpt.RequestOpenAi(text)
+			return ctx.Send(resp)
+		case "notalPay":
+			text := fmt.Sprintf(message.NotalMap, "Олег", "15 декабрся 2002", "11:30", "Киев")
+			resp := chatgpt.RequestOpenAi(text)
+			return ctx.Send(resp)
+		default:
+			user := ctx.Sender()
+			text := fmt.Sprintf("%s, Оплата прошла успешно", user.Username)
+			return ctx.Send(text)
+		}
 	})
 	bot.Handle("/start", func(ctx tele.Context) error {
-		return ctx.Send(StartText)
+		return ctx.Send(message.StartText)
 	})
 	bot.Handle("/buy", func(ctx tele.Context) error {
-		return ctx.Send(BuyText, menu)
+		return ctx.Send(message.BuyText, menu)
 	})
 
 	bot.Handle(&keyboards.BtnStarCard, func(ctx tele.Context) error {
@@ -71,7 +85,7 @@ func main() {
 		return ctx.Send(invoice)
 	})
 	bot.Handle("/test", func(ctx tele.Context) error {
-		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 7000)
+		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 1)
 		return ctx.Send(invoice)
 	})
 
