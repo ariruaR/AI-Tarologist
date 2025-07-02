@@ -51,7 +51,7 @@ func main() {
 			os.Exit(1)
 		}
 		switch currentState {
-		case "startPay":
+		case "starPay":
 			text := fmt.Sprintf(message.StarRequest, ctx.Sender().Username)
 			resp := chatgpt.RequestOpenAi(text)
 			return ctx.Send(resp)
@@ -73,18 +73,30 @@ func main() {
 	})
 
 	bot.Handle(&keyboards.BtnStarCard, func(ctx tele.Context) error {
+		if err := RedisClient.Setter(context.Background(), "State", "starPay", 10*time.Minute); err != nil {
+			panic(err)
+		}
 		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 7000)
 		return ctx.Send(invoice)
 	})
 	bot.Handle(&keyboards.BtnAnotherBuy, func(ctx tele.Context) error {
+		if err := RedisClient.Setter(context.Background(), "State", "notalPay", 10*time.Minute); err != nil {
+			panic(err)
+		}
 		invoice := payment.CreatePayInvoice(ctx, "Еще какая то штука", "оплата услуги", 10000)
 		return ctx.Send(invoice)
 	})
 	bot.Handle(&keyboards.BtnNotalCard, func(ctx tele.Context) error {
+		if err := RedisClient.Setter(context.Background(), "State", "notalPay", 10*time.Minute); err != nil {
+			panic(err)
+		}
 		invoice := payment.CreatePayInvoice(ctx, "Нотальная карта", "Оплата услуги", 8500)
 		return ctx.Send(invoice)
 	})
 	bot.Handle("/test", func(ctx tele.Context) error {
+		if err := RedisClient.Setter(context.Background(), "State", "starPay", 10*time.Minute); err != nil {
+			panic(err)
+		}
 		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 1)
 		return ctx.Send(invoice)
 	})
