@@ -2,6 +2,7 @@ package chatgpt
 
 import (
 	configReader "bot/config"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -11,11 +12,17 @@ import (
 func RequestOpenAi(message string) string {
 	api_key := configReader.Readconfig().APIKEY
 	client := &http.Client{}
-	var data = strings.NewReader(`{
-        "model": "gpt-4o-mini",
-        "input": "Привет!"
-    }`)
-	req, err := http.NewRequest("POST", "https://api.openai.com/v1/responses", data)
+	var data = strings.NewReader(fmt.Sprintf(`{
+  "model": "deepseek/deepseek-r1-0528:free",
+  "messages": [
+    {
+      "role": "user",
+      "content": "%s"
+    }
+  ]
+  
+}`, message))
+	req, err := http.NewRequest("POST", "https://openrouter.ai/api/v1/chat/completions", data)
 	if err != nil {
 		log.Fatal(err)
 	}

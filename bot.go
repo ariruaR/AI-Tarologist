@@ -59,11 +59,29 @@ func main() {
 		case "starPay":
 			text := fmt.Sprintf(message.StarRequest, userInformation)
 			resp := chatgpt.RequestOpenAi(text)
-			return ctx.Send(resp)
+			maxLen := 4096
+			for i := 0; i < len(resp); i += maxLen {
+				end := i + maxLen
+				if end > len(resp) {
+					end = len(resp)
+				}
+				part := resp[i:end]
+				ctx.Send(part)
+			}
+			return ctx.Send("Обращайтесь еще!")
 		case "notalPay":
 			text := fmt.Sprintf(message.NotalMap, userInformation)
 			resp := chatgpt.RequestOpenAi(text)
-			return ctx.Send(resp)
+			maxLen := 4096
+			for i := 0; i < len(resp); i += maxLen {
+				end := i + maxLen
+				if end > len(resp) {
+					end = len(resp)
+				}
+				part := resp[i:end]
+				ctx.Send(part)
+			}
+			return ctx.Send("Обращайтесь еще!")
 		default:
 			user := ctx.Sender()
 			text := fmt.Sprintf("%s, Оплата прошла успешно", user.Username)
