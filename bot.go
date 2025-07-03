@@ -51,13 +51,17 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+		userInformation, err := RedisClient.Getter(context.Background(), ctx.Sender().Username)
+		if err != nil {
+			panic(err)
+		}
 		switch currentState {
 		case "starPay":
-			text := fmt.Sprintf(message.StarRequest, ctx.Sender().Username)
+			text := fmt.Sprintf(message.StarRequest, userInformation)
 			resp := chatgpt.RequestOpenAi(text)
 			return ctx.Send(resp)
 		case "notalPay":
-			text := fmt.Sprintf(message.NotalMap, "Олег", "15 декабрся 2002", "11:30", "Киев")
+			text := fmt.Sprintf(message.NotalMap, userInformation)
 			resp := chatgpt.RequestOpenAi(text)
 			return ctx.Send(resp)
 		default:
@@ -122,25 +126,5 @@ func main() {
 		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 1)
 		return ctx.Send(invoice)
 	})
-
-	// bot.Handle(tele.OnText, func(ctx tele.Context) error {
-	// 	switch text := ctx.Text(); text {
-	// 	case "Нотальная карта":
-	// 		err := payment.SendPayInvoice(ctx, "Нотальная карта", "Оплата услуги", 8500)
-	// 		if err != nil {
-	// 			log.Fatal(err)
-	// 			return nil
-	// 		}
-	// 	case "Еще какая то рандомная хрень":
-	// 		err := payment.SendPayInvoice(ctx, "Еще какая то рандомная хрень", "Оплата услуги", 10000)
-	// 		if err != nil {
-	// 			log.Fatal(err)
-	// 			return nil
-	// 		}
-	// 	default:
-	// 		return ctx.Send("Введите одну из предложенных комманд или нажмите на кнопку")
-	// 	}
-	// 	return ctx.Send("У вас есть 10 минут до конца действительности чека")
-	// })
 	bot.Start()
 }
