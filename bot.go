@@ -41,6 +41,7 @@ func main() {
 	bot.Handle(tele.OnCheckout, func(ctx tele.Context) error {
 		return ctx.Accept()
 	})
+	// TODO СДЕЛАТЬ ВОЗВРАТ СРЕДСТВ
 	bot.Handle("/refund", func(ctx tele.Context) error {
 		return ctx.Send("Эта Функция находится в разработке")
 	})
@@ -66,7 +67,28 @@ func main() {
 		}
 	})
 	bot.Handle("/start", func(ctx tele.Context) error {
+		if err := RedisClient.Setter(context.Background(), "State", "infoWait", 5*time.Minute); err != nil {
+			panic(err)
+		}
 		return ctx.Send(message.StartText)
+	})
+	//?* Обработчик доп информации о пользователе
+	bot.Handle(tele.OnText, func(ctx tele.Context) error {
+		state, err := RedisClient.Getter(context.Background(), "State")
+		if err != nil {
+			panic(err)
+		}
+		if state == "infoWait" {
+			var (
+				userInfo = ctx.Text()
+				user     = ctx.Sender().Username
+			)
+			if err := RedisClient.Setter(context.Background(), user, userInfo, 24*time.Hour); err != nil {
+				panic(err)
+			}
+			return ctx.Send("Спасибо за информацию! Я ее запомню")
+		}
+		return ctx.Send("Упс, меня не научили говорить :)")
 	})
 	bot.Handle("/buy", func(ctx tele.Context) error {
 		return ctx.Send(message.BuyText, menu)
