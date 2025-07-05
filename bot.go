@@ -141,8 +141,19 @@ func main() {
 		if err := RedisClient.Setter(context.Background(), "State", "starPay", 10*time.Minute); err != nil {
 			panic(err)
 		}
-		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 1)
+		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 0)
 		return ctx.Send(invoice)
+	})
+	bot.Handle("/testPay", func(ctx tele.Context) error {
+		userInformation, err := RedisClient.Getter(context.Background(), ctx.Sender().Username)
+		if err != nil {
+			panic(err)
+		}
+		text := fmt.Sprintf(message.TaroAdvice, userInformation)
+		resp := chatgpt.RequestOpenAi(text)
+		return ctx.Send(resp, &tele.SendOptions{
+			ParseMode: "Markdown",
+		})
 	})
 	bot.Start()
 }

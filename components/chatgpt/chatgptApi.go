@@ -2,6 +2,7 @@ package chatgpt
 
 import (
 	configReader "bot/config"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -9,19 +10,41 @@ import (
 	"strings"
 )
 
+type ChatCompletion struct {
+	ID       string   `json:"id"`
+	Provider string   `json:"provider"`
+	Model    string   `json:"model"`
+	Object   string   `json:"object"`
+	Created  int64    `json:"created"`
+	Choices  []Choice `json:"choices"`
+}
+
+type Choice struct {
+	Logprobs           interface{} `json:"logprobs"` // может быть nil или структура, если потребуется
+	FinishReason       string      `json:"finish_reason"`
+	NativeFinishReason string      `json:"native_finish_reason"`
+	Index              int         `json:"index"`
+	Message            Message     `json:"message"`
+}
+
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
 func RequestOpenAi(message string) string {
 	api_key := configReader.Readconfig().APIKEY
 	client := &http.Client{}
-	var data = strings.NewReader(fmt.Sprintf(`{
+	var stringData = fmt.Sprintf(`{
   "model": "deepseek/deepseek-r1-0528:free",
   "messages": [
     {
       "role": "user",
-      "content": "%s"
+	  "content": "%s",
     }
   ]
-  
-}`, message))
+}`, message)
+	var data = strings.NewReader(stringData)
 	req, err := http.NewRequest("POST", "https://openrouter.ai/api/v1/chat/completions", data)
 	if err != nil {
 		log.Fatal(err)
@@ -37,5 +60,17 @@ func RequestOpenAi(message string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return string(bodyText)
+	var chatCompletion ChatCompletion
+	log.Println(string(bodyText))
+	if err := json.Unmarshal([]byte(bodyText), &chatCompletion); err != nil {
+		panic(err)
+	}
+	log.Println(chatCompletion)
+	choises := chatCompletion.Choices
+	if len(choises) > 0 {
+		content := chatCompletion.Choices[0].Message.Content
+		return content
+	} else {
+		return "Произошла какая то ошибка и ответ не был сгенерирован"
+	}
 }
