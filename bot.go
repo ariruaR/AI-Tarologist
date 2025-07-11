@@ -16,8 +16,6 @@ import (
 	tele "gopkg.in/telebot.v4"
 )
 
-// Local Imports
-
 func main() {
 	bot_token := configReader.Readconfig().BOTTOKEN
 	pref := tele.Settings{
@@ -26,6 +24,7 @@ func main() {
 	}
 	//?* СОЗДАНИЕ РЕДИС КЛИЕНТА
 	RedisClient := r.NewClient()
+	redisCtx := context.Background()
 
 	if err := RedisClient.Setter(context.Background(), "State", "default", 10*time.Minute); err != nil {
 		fmt.Println(err)
@@ -41,10 +40,12 @@ func main() {
 	bot.Handle(tele.OnCheckout, func(ctx tele.Context) error {
 		return ctx.Accept()
 	})
+
 	// TODO СДЕЛАТЬ ВОЗВРАТ СРЕДСТВ
 	bot.Handle("/refund", func(ctx tele.Context) error {
 		return ctx.Send("Эта Функция находится в разработке")
 	})
+
 	bot.Handle(tele.OnPayment, func(ctx tele.Context) error {
 		currentState, err := RedisClient.Getter(context.Background(), "State")
 		if err != nil {
@@ -55,22 +56,47 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		ctx.Send("Отправляю запрос, ожидайте...")
 		switch currentState {
 		case "starPay":
 			text := fmt.Sprintf(message.StarRequest, userInformation)
 			resp := chatgpt.RequestOpenAi(text)
-			return ctx.Send(resp)
+			maxLen := 4096
+			for i := 0; i < len(resp); i += maxLen {
+				end := i + maxLen
+				if end > len(resp) {
+					end = len(resp)
+				}
+				part := resp[i:end]
+				ctx.Send(part)
+			}
+			return ctx.Send("Обращайтесь еще!")
 		case "notalPay":
 			text := fmt.Sprintf(message.NotalMap, userInformation)
 			resp := chatgpt.RequestOpenAi(text)
-			return ctx.Send(resp)
+			maxLen := 4096
+			for i := 0; i < len(resp); i += maxLen {
+				end := i + maxLen
+				if end > len(resp) {
+					end = len(resp)
+				}
+				part := resp[i:end]
+				ctx.Send(part)
+			}
+			return ctx.Send("Обращайтесь еще!")
 		default:
 			user := ctx.Sender()
 			text := fmt.Sprintf("%s, Оплата прошла успешно", user.Username)
 			return ctx.Send(text)
 		}
 	})
+
 	bot.Handle("/start", func(ctx tele.Context) error {
+
+		if err := RedisClient.SetNewUser(redisCtx, int(ctx.Sender().ID), ctx.Sender().Username, false, " ", nil, 24*30*time.Hour); err != nil {
+			panic(err)
+		}
+
 		if err := RedisClient.Setter(context.Background(), "State", "infoWait", 5*time.Minute); err != nil {
 			panic(err)
 		}
@@ -85,9 +111,8 @@ func main() {
 		if state == "infoWait" {
 			var (
 				userInfo = ctx.Text()
-				user     = ctx.Sender().Username
 			)
-			if err := RedisClient.Setter(context.Background(), user, userInfo, 24*time.Hour); err != nil {
+			if err := RedisClient.UpdateFieldUser(redisCtx, int(ctx.Sender().ID), "info", userInfo, 24*30*time.Hour); err != nil {
 				panic(err)
 			}
 			return ctx.Send("Спасибо за информацию! Я ее запомню")
@@ -123,8 +148,19 @@ func main() {
 		if err := RedisClient.Setter(context.Background(), "State", "starPay", 10*time.Minute); err != nil {
 			panic(err)
 		}
-		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 1)
+		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 0)
 		return ctx.Send(invoice)
+	})
+	bot.Handle("/testPay", func(ctx tele.Context) error {
+		userInformation, err := RedisClient.Getter(context.Background(), ctx.Sender().Username)
+		if err != nil {
+			panic(err)
+		}
+		text := fmt.Sprintf(message.TaroAdvice, userInformation)
+		resp := chatgpt.RequestOpenAi(text)
+		return ctx.Send(resp, &tele.SendOptions{
+			ParseMode: "Markdown",
+		})
 	})
 	bot.Start()
 }
