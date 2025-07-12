@@ -152,11 +152,11 @@ func main() {
 		return ctx.Send(invoice)
 	})
 	bot.Handle("/testPay", func(ctx tele.Context) error {
-		userInformation, err := RedisClient.Getter(context.Background(), ctx.Sender().Username)
+		user, err := RedisClient.ReadUser(redisCtx, int(ctx.Sender().ID))
 		if err != nil {
 			panic(err)
 		}
-		text := fmt.Sprintf(message.TaroAdvice, userInformation)
+		text := fmt.Sprintf(message.TaroAdvice, user.Info)
 		resp := chatgpt.RequestOpenAi(text)
 		return ctx.Send(resp, &tele.SendOptions{
 			ParseMode: "Markdown",
