@@ -99,3 +99,15 @@ func (r *redisClient) UpdateFieldUser(
 	}
 	return r.client.Set(ctx, key, updatedUserData, expiration).Err()
 }
+
+func (r *redisClient) GetUser(ctx context.Context, key string) (models.User, error) {
+	userData, err := r.client.Get(ctx, key).Result()
+	if err != nil {
+		return models.User{}, err
+	}
+	var user models.User
+	if err := json.Unmarshal([]byte(userData), &user); err != nil {
+		return models.User{}, err
+	}
+	return user, nil
+}

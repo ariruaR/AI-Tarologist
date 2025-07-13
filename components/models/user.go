@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 )
@@ -12,6 +13,10 @@ type User struct {
 	Info      string `json:"info"`
 	// ?* Data format: " { paymentDate : paymentID}"
 	PaymentHistory map[string]string `json:"paymentHistory" default:""`
+}
+
+func (u User) MarshalBinary() ([]byte, error) {
+	return json.Marshal(u)
 }
 
 func NewUser(ID int, Username string, isPremium bool, Info string, PaymentHistory map[string]string) (User, error) {
