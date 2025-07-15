@@ -42,12 +42,12 @@ func TestNewUser_WithPaymentHistory(t *testing.T) {
 		t.Fatalf("NewUser() returned error: %v", err)
 	}
 
-	if len(user.PaymentHistory) != 2 {
-		t.Errorf("expected 2 payment history entries, got %d", len(user.PaymentHistory))
+	if len(user.LastPayment) != 2 {
+		t.Errorf("expected 2 payment history entries, got %d", len(user.LastPayment))
 	}
 
-	if user.PaymentHistory["2024-01-01"] != "payment_123" {
-		t.Errorf("expected payment_123, got %s", user.PaymentHistory["2024-01-01"])
+	if user.LastPayment["2024-01-01"] != "payment_123" {
+		t.Errorf("expected payment_123, got %s", user.LastPayment["2024-01-01"])
 	}
 }
 

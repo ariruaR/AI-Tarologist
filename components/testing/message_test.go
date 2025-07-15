@@ -32,15 +32,15 @@ func TestMessageConstants_NotEmpty(t *testing.T) {
 func TestMessageConstants_ContainsPlaceholders(t *testing.T) {
 	// Проверяем, что сообщения содержат плейсхолдеры для подстановки данных
 	if !strings.Contains(message.StarRequest, "%s") {
-		t.Error("StarRequest should contain %s placeholder")
+		t.Error("StarRequest should contain placeholder")
 	}
 
 	if !strings.Contains(message.NotalMap, "%s") {
-		t.Error("NotalMap should contain %s placeholder")
+		t.Error("NotalMap should contain placeholder")
 	}
 
 	if !strings.Contains(message.TaroAdvice, "%s") {
-		t.Error("TaroAdvice should contain %s placeholder")
+		t.Error("TaroAdvice should contain placeholder")
 	}
 }
 

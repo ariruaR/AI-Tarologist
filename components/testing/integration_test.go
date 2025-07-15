@@ -34,7 +34,7 @@ func TestUserCreationAndStorage(t *testing.T) {
 
 	// Сохраняем пользователя в Redis
 	ctx := context.Background()
-	err = client.SetNewUser(ctx, user.ID, user.Username, user.IsPremium, user.Info, user.PaymentHistory, time.Hour)
+	err = client.SetNewUser(ctx, user.ID, user.Username, user.IsPremium, user.Info, user.LastPayment, time.Hour)
 	if err != nil {
 		t.Fatalf("Failed to save user to Redis: %v", err)
 	}
