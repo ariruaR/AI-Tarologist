@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"bot/components/chatgpt"
@@ -26,7 +27,7 @@ func main() {
 	RedisClient := r.NewClient()
 	redisCtx := context.Background()
 
-	if err := RedisClient.Setter(context.Background(), "State", "default", 10*time.Minute); err != nil {
+	if err := RedisClient.Setter(redisCtx, "State", "default", 10*time.Minute); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -47,19 +48,20 @@ func main() {
 	})
 
 	bot.Handle(tele.OnPayment, func(ctx tele.Context) error {
-		currentState, err := RedisClient.Getter(context.Background(), "State")
+		currentState, err := RedisClient.Getter(redisCtx, "State")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		userInformation, err := RedisClient.Getter(context.Background(), ctx.Sender().Username)
+		key := strconv.Itoa(int(ctx.Sender().ID))
+		userData, err := RedisClient.GetUser(redisCtx, key)
 		if err != nil {
 			panic(err)
 		}
 		ctx.Send("Отправляю запрос, ожидайте...")
 		switch currentState {
 		case "starPay":
-			text := fmt.Sprintf(message.StarRequest, userInformation)
+			text := fmt.Sprintf(message.StarRequest, userData.Info)
 			resp := chatgpt.RequestOpenAi(text)
 			maxLen := 4096
 			for i := 0; i < len(resp); i += maxLen {
@@ -72,7 +74,7 @@ func main() {
 			}
 			return ctx.Send("Обращайтесь еще!")
 		case "notalPay":
-			text := fmt.Sprintf(message.NotalMap, userInformation)
+			text := fmt.Sprintf(message.NotalMap, userData.Info)
 			resp := chatgpt.RequestOpenAi(text)
 			maxLen := 4096
 			for i := 0; i < len(resp); i += maxLen {
@@ -97,14 +99,14 @@ func main() {
 			panic(err)
 		}
 
-		if err := RedisClient.Setter(context.Background(), "State", "infoWait", 5*time.Minute); err != nil {
+		if err := RedisClient.Setter(redisCtx, "State", "infoWait", 5*time.Minute); err != nil {
 			panic(err)
 		}
 		return ctx.Send(message.StartText)
 	})
 	//?* Обработчик доп информации о пользователе
 	bot.Handle(tele.OnText, func(ctx tele.Context) error {
-		state, err := RedisClient.Getter(context.Background(), "State")
+		state, err := RedisClient.Getter(redisCtx, "State")
 		if err != nil {
 			panic(err)
 		}
@@ -124,28 +126,28 @@ func main() {
 	})
 
 	bot.Handle(&keyboards.BtnStarCard, func(ctx tele.Context) error {
-		if err := RedisClient.Setter(context.Background(), "State", "starPay", 10*time.Minute); err != nil {
+		if err := RedisClient.Setter(redisCtx, "State", "starPay", 10*time.Minute); err != nil {
 			panic(err)
 		}
 		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 7000)
 		return ctx.Send(invoice)
 	})
 	bot.Handle(&keyboards.BtnAnotherBuy, func(ctx tele.Context) error {
-		if err := RedisClient.Setter(context.Background(), "State", "notalPay", 10*time.Minute); err != nil {
+		if err := RedisClient.Setter(redisCtx, "State", "notalPay", 10*time.Minute); err != nil {
 			panic(err)
 		}
 		invoice := payment.CreatePayInvoice(ctx, "Еще какая то штука", "оплата услуги", 10000)
 		return ctx.Send(invoice)
 	})
 	bot.Handle(&keyboards.BtnNotalCard, func(ctx tele.Context) error {
-		if err := RedisClient.Setter(context.Background(), "State", "notalPay", 10*time.Minute); err != nil {
+		if err := RedisClient.Setter(redisCtx, "State", "notalPay", 10*time.Minute); err != nil {
 			panic(err)
 		}
 		invoice := payment.CreatePayInvoice(ctx, "Нотальная карта", "Оплата услуги", 8500)
 		return ctx.Send(invoice)
 	})
 	bot.Handle("/test", func(ctx tele.Context) error {
-		if err := RedisClient.Setter(context.Background(), "State", "starPay", 10*time.Minute); err != nil {
+		if err := RedisClient.Setter(redisCtx, "State", "starPay", 10*time.Minute); err != nil {
 			panic(err)
 		}
 		invoice := payment.CreatePayInvoice(ctx, "Прогноз по звездам", "Оплата услуги", 0)
