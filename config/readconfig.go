@@ -1,4 +1,4 @@
-package configReader
+package config
 
 import (
 	"log"
@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	APIURL   string
-	APIKEY   string
-	BOTTOKEN string
+	APIURL         string
+	APIKEY         string
+	BOTTOKEN       string
+	REDIS_ADDR     string
+	REDIS_PASSWORD string
 }
 
 func init() {
@@ -22,9 +24,13 @@ func Readconfig() Config {
 	api_url, _ := os.LookupEnv("APIURL")
 	api_key, _ := os.LookupEnv("APIKEY")
 	bot_token, _ := os.LookupEnv("TELEGRAMBOTTOKEN")
+	redisAddr, _ := os.LookupEnv("REDIS-ADDR")
+	redisPassword, _ := os.LookupEnv("REDIS-PASSWORD")
 	return Config{
-		APIURL:   api_url,
-		APIKEY:   api_key,
-		BOTTOKEN: bot_token,
+		APIURL:         api_url,
+		APIKEY:         api_key,
+		BOTTOKEN:       bot_token,
+		REDIS_ADDR:     redisAddr,
+		REDIS_PASSWORD: redisPassword,
 	}
 }

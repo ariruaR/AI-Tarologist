@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	configReader "bot/config"
+
 	redis "github.com/redis/go-redis/v9"
 )
 
@@ -14,10 +16,12 @@ type redisClient struct {
 	client *redis.Client
 }
 
+var config = configReader.Readconfig()
+
 func NewClient() *redisClient {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
+		Addr:     config.REDIS_ADDR,
+		Password: config.REDIS_PASSWORD,
 		DB:       0,
 	})
 	return &redisClient{
@@ -100,12 +104,13 @@ func (r *redisClient) UpdateFieldUser(
 	return r.client.Set(ctx, key, updatedUserData, expiration).Err()
 }
 
-func (r *redisClient) GetUser(ctx context.Context, key string) (models.User, error) {
+func (r *redisClient) ReadUser(ctx context.Context, id int) (models.User, error) {
+	key := strconv.Itoa(id)
+	var user models.User
 	userData, err := r.client.Get(ctx, key).Result()
 	if err != nil {
 		return models.User{}, err
 	}
-	var user models.User
 	if err := json.Unmarshal([]byte(userData), &user); err != nil {
 		return models.User{}, err
 	}
