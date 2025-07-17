@@ -4,8 +4,12 @@ import (
 	"bot/components/models"
 	"context"
 	"encoding/json"
+	"errors"
+	"log"
 	"strconv"
 	"time"
+
+	configReader "bot/config"
 
 	redis "github.com/redis/go-redis/v9"
 )
@@ -14,10 +18,12 @@ type redisClient struct {
 	client *redis.Client
 }
 
+var config = configReader.Readconfig()
+
 func NewClient() *redisClient {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
+		Addr:     config.REDIS_ADDR,
+		Password: config.REDIS_PASSWORD,
 		DB:       0,
 	})
 	return &redisClient{
@@ -58,39 +64,39 @@ func (r *redisClient) UpdateFieldUser(
 	var user models.User
 	userData, err := r.client.Get(ctx, key).Result()
 	if err != nil {
-		panic(err)
+		log.Printf("Ошибка при создании пользователя, %s", err)
+		return err
 	}
 	if err := json.Unmarshal([]byte(userData), &user); err != nil {
 		return err
 	}
-
 	switch field {
 	case "username":
 		if username, ok := value.(string); ok {
 			user.Username = username
 		} else {
-			return err
+			return errors.New("неверный тип данных для добавления в поле")
 		}
 	case "isPremium":
 		if isPremium, ok := value.(bool); ok {
 			user.IsPremium = isPremium
 		} else {
-			return err
+			return errors.New("неверный тип данных для добавления в поле")
 		}
 	case "info":
 		if info, ok := value.(string); ok {
 			user.Info = info
 		} else {
-			return err
+			return errors.New("неверный тип данных для добавления в поле")
 		}
-	case "paymentHistory":
-		if paymentHistory, ok := value.(map[string]string); ok {
-			user.PaymentHistory = paymentHistory
+	case "LastPayment":
+		if lastPayment, ok := value.(map[string]string); ok {
+			user.LastPayment = lastPayment
 		} else {
-			return err
+			return errors.New("неверный тип данных для добавления в поле")
 		}
 	default:
-		return err
+		return errors.New("такого поля не существует")
 	}
 
 	updatedUserData, err := json.Marshal(user)
@@ -100,12 +106,13 @@ func (r *redisClient) UpdateFieldUser(
 	return r.client.Set(ctx, key, updatedUserData, expiration).Err()
 }
 
-func (r *redisClient) GetUser(ctx context.Context, key string) (models.User, error) {
+func (r *redisClient) ReadUser(ctx context.Context, id int) (models.User, error) {
+	key := strconv.Itoa(id)
+	var user models.User
 	userData, err := r.client.Get(ctx, key).Result()
 	if err != nil {
 		return models.User{}, err
 	}
-	var user models.User
 	if err := json.Unmarshal([]byte(userData), &user); err != nil {
 		return models.User{}, err
 	}

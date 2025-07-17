@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"bot/components/chatgpt"
@@ -53,8 +52,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		key := strconv.Itoa(int(ctx.Sender().ID))
-		userData, err := RedisClient.GetUser(redisCtx, key)
+		userData, err := RedisClient.ReadUser(redisCtx, int(ctx.Sender().ID))
 		if err != nil {
 			panic(err)
 		}
@@ -154,13 +152,11 @@ func main() {
 		return ctx.Send(invoice)
 	})
 	bot.Handle("/testPay", func(ctx tele.Context) error {
-
-		key := strconv.Itoa(int(ctx.Sender().ID))
-		userInformation, err := RedisClient.Getter(redisCtx, key)
+		user, err := RedisClient.ReadUser(redisCtx, int(ctx.Sender().ID))
 		if err != nil {
 			panic(err)
 		}
-		text := fmt.Sprintf(message.TaroAdvice, userInformation)
+		text := fmt.Sprintf(message.TaroAdvice, user.Info)
 		resp := chatgpt.RequestOpenAi(text)
 		return ctx.Send(resp, &tele.SendOptions{
 			ParseMode: "Markdown",
